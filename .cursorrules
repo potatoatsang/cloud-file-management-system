@@ -1,0 +1,130 @@
+# 雲端檔案管理系統 — Cursor 開發規則
+
+規格以根目錄 `REQUIREMENTS.md` 為準。開發採 **SDD**（規格決定範圍與順序）加上 **必備功能的 Domain TDD**（先寫 xUnit 測試再實作至全綠）。
+
+## 1. 技術選型
+
+- 執行環境 / 語言：.NET 8、C# 12
+- 專案：`FileSystem.Domain`、`FileSystem.Console`、`FileSystem.Web`、`FileSystem.Tests`
+- 物件樹：行程內記憶體，由 `SampleTreeFactory` 建立題目範例結構
+- 測試：xUnit + FluentAssertions；Domain 使用真實物件實例
+- HTTP：ASP.NET Core Minimal API
+- 前端：Vue 3 Composition API（`<script setup>`）、TypeScript、Tailwind CSS、Axios
+- 文件：`docs/class-diagram.md`、`docs/er-model.md`（Mermaid）、根目錄 `README.md`
+
+## 2. 分層
+
+- `FileSystem.Domain`：零 NuGet。遍歷記錄寫入 Visitor 的 Trail 集合；由 Console 或 Web 負責顯示。
+- `FileSystem.Console`：無 UI 的官方 Demo，印出必備功能結果。
+- `FileSystem.Web`：Minimal API；稍後以 `wwwroot` 託管 Vue 建置產出。Use case / DTO 可放在 Web。
+- `FileSystem.Tests`：只測試 Domain（及之後與 Domain 行為等價的服務）。斷言使用 FluentAssertions。
+
+依賴方向：Console / Web / Tests → Domain。前端只透過 HTTP 取得結果，不在瀏覽器重算容量或搜尋。
+
+## 3. 領域不變量
+
+- `FileSystemNode`（abstract）：`Guid Id`、`string Name`、`Directory? Parent`、`DateTime CreatedAt`、標籤集合
+- `Directory`：子節點集合；Root 的 `Parent` 為 null
+- `File`（abstract）：`long SizeBytes`、`string Extension`；Parent 必須是 Directory
+- `WordFile`：`int PageCount`
+- `ImageFile`：`int Width`、`int Height`
+- `TextFile`：`string Encoding`
+- 檔案沒有 Children；樹不可有環
+- 容量內部單位為 bytes；**1 KB = 1024 bytes**；顯示再格式化為 B / KB / MB
+- 標籤僅限 `Urgent`、`Work`、`Personal`，可多選
+- `CalculateSize()`：File 回傳 `SizeBytes`；Directory 回傳子樹加總。對外「計算總容量」必須走 Visitor，才能產生 Trail
+
+## 4. Seed
+
+唯一準則為題目「客戶範例結構」，由 `SampleTreeFactory.Create()` 建立：
+
+- 根目錄 (Root)
+  - 專案文件 (Project_Docs)：需求規格書.docx（Word，15 頁，500KB）、系統架構圖.png（Image，1920x1080，2MB）
+  - 個人筆記 (Personal_Notes)：待辦清單.txt（Text，UTF-8，1KB）、2025備份 (Archive_2025)／舊會議記錄.docx（Word，5 頁，200KB）
+  - README.txt（Text，ASCII，500B）
+
+## 5. 設計模式
+
+### Composite
+
+檔案與目錄皆為 `FileSystemNode`。演算法以 Visitor 擴充。
+
+### Visitor
+
+`IFsVisitor`：`VisitDirectory`、`VisitWordFile`、`VisitImageFile`、`VisitTextFile`
+
+- `PrintVisitor`：樹狀文字
+- `CalculateSizeVisitor`：總 bytes 與顯示字串
+- `SearchVisitor`：副檔名（`.` 可有可無），結果為完整路徑
+- `XmlExportVisitor`：題目指定 XML
+
+每個 Visit 方法將 `Visiting: {parentName} -> {node.Name}` 追加到 Trail。Root 可用 `(root) -> 根目錄`。Application/Console/Web 輸出 Trail。
+
+XML：
+
+- 目錄 tag：有中英並列時為 `中文_英文`（空白改 `_`）；否則用現有名稱（如 `Archive_2025`）
+- 檔案 tag：`主檔名_副檔名`
+- 內文格式對齊題目（頁數 / 解析度 / 編碼 + 大小）
+
+### 進階功能用到的模式
+
+- Strategy：`ISortStrategy`（名稱、大小、副檔名），支援升冪與降冪
+- Prototype：`FileSystemNode.Clone()` 深拷貝子樹並產生新 Id
+- Command：`ICommand`（`Execute` / `Undo`）、`DeleteNodeCommand`、`CopyPasteNodeCommand`、`CommandHistory`（undo / redo stack）
+- 建議另有 `SortCommand`、`TagCommand` 以便復原
+
+## 6. API
+
+Visitor 類端點回傳資料與 `traverseLog`（字串清單）並列。建議：
+
+- `GET /api/tree`
+- `POST /api/visitors/size`
+- `POST /api/visitors/search`
+- `POST /api/visitors/xml`
+- 進階：delete / paste / sort / tag / undo / redo
+
+啟動時 Seed；記憶體單例持有 Root。
+
+## 7. 前端
+
+組件：`FileTree.vue`、`VisitorPanel.vue`、`TraverseConsole.vue`；進階功能再加工具列。以 Axios 呼叫後端並渲染 DTO。
+
+## 8. 測試（必備功能，先寫再實作）
+
+以範例樹為 fixture：
+
+- 結構與各檔 metadata 正確
+- Root 總 bytes 依 1024 換算正確
+- `.docx` 恰好兩條路徑：需求規格書、舊會議記錄
+- XML 含 `<根目錄_Root>` 與範例節點
+- Size / Search 的 Trail 非空，且含拜訪過的目錄與檔名
+
+進階功能有實作時補相對應測試。
+
+## 9. 開發順序
+
+1. Domain TDD：測試 → 節點與不變量 → Visitor + Trail 至全綠
+2. `FileSystem.Console`：`dotnet run` 印出功能一～三（此時核心已可驗收）
+3. `docs/` Mermaid 類別圖與 ER、README 設計說明
+4. `FileSystem.Web` Minimal API（不改 Domain 演算法）
+5. Vue：FileTree → VisitorPanel → TraverseConsole
+6. 進階功能：排序 → 刪除／複製貼上 → 標籤 → Undo／Redo
+
+未完成步驟 1–2 前，不建立 Vue 檔案。
+
+## 10. Git
+
+僅在使用者明確要求 commit 或 push 時執行。
+
+- commit 前：`git status`、`git diff`
+- 訊息：Conventional Commits，說明為繁體中文（例：`feat(domain): 實作目錄總容量 Visitor`）
+- 只暫存相關原始碼與文件；忽略 `bin/`、`obj/`、`node_modules/` 等（見 `.gitignore`）
+- 生命週期對應 commit：規格文件 → Console 必備功能 → API → Vue → 進階功能
+- 遠端 repo 名稱：`cloud-file-management-system`
+
+## 11. 完成定義
+
+- `dotnet test` 全綠
+- Console 可 Demo：樹狀結構、總容量與 Trail、搜尋 `.docx` 與 Trail、XML
+- Web：看得到樹；三個 Visitor 操作；畫面顯示後端 `traverseLog`
+- `docs/class-diagram.md`、`docs/er-model.md`、README 含架構與 pattern 說明
