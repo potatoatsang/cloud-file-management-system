@@ -1,4 +1,5 @@
 ﻿using FileSystem.Domain;
+using FileSystem.Domain.Sorting;
 using FileSystem.Domain.Visitors;
 using Directory = FileSystem.Domain.Directory;
 
@@ -56,6 +57,25 @@ public static class Program
         var xml = new XmlExportVisitor();
         root.Accept(xml);
         System.Console.Write(xml.Xml);
+
+        WriteHeading("5) 排序後印樹（專案文件）");
+        PrintSorted(projectDocs, new NameSortStrategy(), SortDirection.Ascending, "名稱升冪");
+        PrintSorted(projectDocs, new SizeSortStrategy(), SortDirection.Descending, "大小降冪");
+        PrintSorted(projectDocs, new ExtensionSortStrategy(), SortDirection.Ascending, "副檔名升冪");
+    }
+
+    private static void PrintSorted(
+        Directory directory,
+        ISortStrategy strategy,
+        SortDirection direction,
+        string caption)
+    {
+        directory.Sort(strategy, direction);
+        var print = new PrintVisitor();
+        directory.Accept(print);
+        System.Console.WriteLine($"--- {caption} ---");
+        System.Console.Write(print.Output);
+        System.Console.WriteLine();
     }
 
     private static void WriteHeading(string title)

@@ -56,6 +56,17 @@ public sealed class Directory : FileSystemNode
         node.AttachTo(this);
     }
 
+    public void Sort(ISortStrategy strategy, SortDirection direction)
+    {
+        ArgumentNullException.ThrowIfNull(strategy);
+        strategy.Sort(this, direction);
+    }
+
+    internal void SortInPlace(Comparison<FileSystemNode> comparison)
+    {
+        _children.Sort(comparison);
+    }
+
     public override void Accept(IFsVisitor visitor) => visitor.VisitDirectory(this);
 
     public override long CalculateSize() => _children.Sum(child => child.CalculateSize());
