@@ -17,5 +17,5 @@ public sealed class WordFile : File
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitWordFile(this);
 
-    public override FileSystemNode Clone() => new WordFile(Name, SizeBytes, PageCount);
+    public override FileSystemNode Clone() => CopyTagsTo(new WordFile(Name, SizeBytes, PageCount));
 }

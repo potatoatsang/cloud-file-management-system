@@ -17,5 +17,5 @@ public sealed class TextFile : File
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitTextFile(this);
 
-    public override FileSystemNode Clone() => new TextFile(Name, SizeBytes, Encoding);
+    public override FileSystemNode Clone() => CopyTagsTo(new TextFile(Name, SizeBytes, Encoding));
 }

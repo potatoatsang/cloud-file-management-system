@@ -25,5 +25,5 @@ public sealed class ImageFile : File
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitImageFile(this);
 
-    public override FileSystemNode Clone() => new ImageFile(Name, SizeBytes, Width, Height);
+    public override FileSystemNode Clone() => CopyTagsTo(new ImageFile(Name, SizeBytes, Width, Height));
 }

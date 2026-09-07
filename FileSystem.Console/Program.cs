@@ -80,6 +80,19 @@ public static class Program
         new CopyPasteNodeCommand(spec, targetNotes).Execute();
         System.Console.WriteLine("--- 將需求規格書.docx 複製貼上至個人筆記後 ---");
         WriteTree(editRoot);
+
+        WriteHeading("7) 貼標與移除");
+        var tagRoot = SampleTreeFactory.Create();
+        var taggedProject = tagRoot.Children.OfType<Directory>().Single(d => d.Name == "專案文件");
+        var taggedSpec = taggedProject.Children.OfType<WordFile>().Single(f => f.Name == "需求規格書.docx");
+        taggedProject.AddTag(Tag.Work);
+        taggedSpec.AddTag(Tag.Urgent);
+        taggedSpec.AddTag(Tag.Work);
+        WriteNodeTags("專案文件（貼標後）", taggedProject);
+        WriteNodeTags("需求規格書.docx（貼標後）", taggedSpec);
+
+        taggedSpec.RemoveTag(Tag.Urgent);
+        WriteNodeTags("需求規格書.docx（移除 Urgent 後）", taggedSpec);
     }
 
     private static void PrintSorted(
@@ -101,6 +114,23 @@ public static class Program
         var print = new PrintVisitor();
         directory.Accept(print);
         System.Console.Write(print.Output);
+        System.Console.WriteLine();
+    }
+
+    private static void WriteNodeTags(string caption, FileSystemNode node)
+    {
+        System.Console.WriteLine($"--- {caption} ---");
+        if (node.Tags.Count == 0)
+        {
+            System.Console.WriteLine("(無標籤)");
+            return;
+        }
+
+        foreach (var tag in node.Tags)
+        {
+            System.Console.WriteLine($"{tag}（{TagPalette.ColorName(tag)}）");
+        }
+
         System.Console.WriteLine();
     }
 

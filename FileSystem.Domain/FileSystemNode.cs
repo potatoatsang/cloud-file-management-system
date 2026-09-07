@@ -26,6 +26,12 @@ public abstract class FileSystemNode
 
     public IReadOnlyCollection<Tag> Tags => _tags;
 
+    public void AddTag(Tag tag) => _tags.Add(tag);
+
+    public void RemoveTag(Tag tag) => _tags.Remove(tag);
+
+    public bool HasTag(Tag tag) => _tags.Contains(tag);
+
     public abstract void Accept(IFsVisitor visitor);
 
     public abstract long CalculateSize();
@@ -42,6 +48,16 @@ public abstract class FileSystemNode
 
         parts.Reverse();
         return string.Join(separator, parts);
+    }
+
+    protected FileSystemNode CopyTagsTo(FileSystemNode clone)
+    {
+        foreach (var tag in _tags)
+        {
+            clone.AddTag(tag);
+        }
+
+        return clone;
     }
 
     internal void AttachTo(Directory parent)

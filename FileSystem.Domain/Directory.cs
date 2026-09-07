@@ -109,6 +109,7 @@ public sealed class Directory : FileSystemNode
     public override FileSystemNode Clone()
     {
         var copy = new Directory(Name, EnglishName, _xmlTagOverride);
+        CopyTagsTo(copy);
         foreach (var child in _children)
         {
             copy.Add(child.Clone());
