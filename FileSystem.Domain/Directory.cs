@@ -102,6 +102,22 @@ public sealed class Directory : FileSystemNode
         _children.Sort(comparison);
     }
 
+    internal void RestoreChildrenOrder(IReadOnlyList<FileSystemNode> order)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+
+        if (order.Count != _children.Count || order.Any(child => !_children.Contains(child)))
+        {
+            throw new InvalidOperationException("Restored order must contain the same children.");
+        }
+
+        _children.Clear();
+        foreach (var child in order)
+        {
+            _children.Add(child);
+        }
+    }
+
     public override void Accept(IFsVisitor visitor) => visitor.VisitDirectory(this);
 
     public override long CalculateSize() => _children.Sum(child => child.CalculateSize());

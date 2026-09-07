@@ -16,7 +16,12 @@ public sealed class CopyPasteNodeCommand : ICommand
     {
         if (_pasted is not null)
         {
-            throw new InvalidOperationException("Command has already been executed.");
+            if (_pasted.Parent is null)
+            {
+                _target.Add(_pasted);
+            }
+
+            return;
         }
 
         _pasted = _source.Clone();
@@ -31,6 +36,5 @@ public sealed class CopyPasteNodeCommand : ICommand
         }
 
         _target.Remove(_pasted);
-        _pasted = null;
     }
 }

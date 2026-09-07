@@ -93,6 +93,41 @@ public static class Program
 
         taggedSpec.RemoveTag(Tag.Urgent);
         WriteNodeTags("需求規格書.docx（移除 Urgent 後）", taggedSpec);
+
+        WriteHeading("8) Undo／Redo（CommandHistory）");
+        var historyRoot = SampleTreeFactory.Create();
+        var history = new CommandHistory();
+        var historyReadme = historyRoot.Children.OfType<TextFile>().Single(f => f.Name == "README.txt");
+        var historyProject = historyRoot.Children.OfType<Directory>().Single(d => d.Name == "專案文件");
+
+        System.Console.WriteLine("--- 操作前 ---");
+        WriteTree(historyRoot);
+        WriteNodeTags("專案文件標籤", historyProject);
+
+        history.Execute(new DeleteNodeCommand(historyReadme));
+        history.Execute(TagCommand.Add(historyProject, Tag.Urgent));
+        System.Console.WriteLine("--- Execute：刪除 README.txt + 專案文件貼 Urgent ---");
+        WriteTree(historyRoot);
+        WriteNodeTags("專案文件標籤", historyProject);
+        System.Console.WriteLine($"CanUndo={history.CanUndo}, CanRedo={history.CanRedo}");
+        System.Console.WriteLine();
+
+        history.Undo();
+        System.Console.WriteLine("--- Undo 一次（還原標籤） ---");
+        WriteNodeTags("專案文件標籤", historyProject);
+
+        history.Undo();
+        System.Console.WriteLine("--- Undo 再一次（還原 README.txt） ---");
+        WriteTree(historyRoot);
+        System.Console.WriteLine($"CanUndo={history.CanUndo}, CanRedo={history.CanRedo}");
+        System.Console.WriteLine();
+
+        history.Redo();
+        history.Redo();
+        System.Console.WriteLine("--- Redo 兩次（再次刪除 README.txt + 貼 Urgent） ---");
+        WriteTree(historyRoot);
+        WriteNodeTags("專案文件標籤", historyProject);
+        System.Console.WriteLine($"CanUndo={history.CanUndo}, CanRedo={history.CanRedo}");
     }
 
     private static void PrintSorted(
@@ -123,6 +158,7 @@ public static class Program
         if (node.Tags.Count == 0)
         {
             System.Console.WriteLine("(無標籤)");
+            System.Console.WriteLine();
             return;
         }
 
