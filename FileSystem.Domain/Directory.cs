@@ -56,6 +56,41 @@ public sealed class Directory : FileSystemNode
         node.AttachTo(this);
     }
 
+    public bool Remove(FileSystemNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        var index = _children.IndexOf(node);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        _children.RemoveAt(index);
+        node.Detach();
+        return true;
+    }
+
+    public void Insert(int index, FileSystemNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        if (node.Parent is not null)
+        {
+            throw new InvalidOperationException("Node already belongs to a directory.");
+        }
+
+        if (WouldCreateCycle(node))
+        {
+            throw new InvalidOperationException("The tree must not contain cycles.");
+        }
+
+        _children.Insert(index, node);
+        node.AttachTo(this);
+    }
+
+    public int IndexOf(FileSystemNode node) => _children.IndexOf(node);
+
     public void Sort(ISortStrategy strategy, SortDirection direction)
     {
         ArgumentNullException.ThrowIfNull(strategy);
@@ -70,6 +105,17 @@ public sealed class Directory : FileSystemNode
     public override void Accept(IFsVisitor visitor) => visitor.VisitDirectory(this);
 
     public override long CalculateSize() => _children.Sum(child => child.CalculateSize());
+
+    public override FileSystemNode Clone()
+    {
+        var copy = new Directory(Name, EnglishName, _xmlTagOverride);
+        foreach (var child in _children)
+        {
+            copy.Add(child.Clone());
+        }
+
+        return copy;
+    }
 
     private bool WouldCreateCycle(FileSystemNode node)
     {

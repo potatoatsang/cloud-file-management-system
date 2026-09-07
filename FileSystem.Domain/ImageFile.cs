@@ -24,4 +24,6 @@ public sealed class ImageFile : File
     public int Height { get; }
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitImageFile(this);
+
+    public override FileSystemNode Clone() => new ImageFile(Name, SizeBytes, Width, Height);
 }

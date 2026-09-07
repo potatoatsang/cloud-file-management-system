@@ -30,6 +30,8 @@ public abstract class FileSystemNode
 
     public abstract long CalculateSize();
 
+    public abstract FileSystemNode Clone();
+
     public string GetFullPath(string separator = "/")
     {
         var parts = new List<string>();
@@ -45,5 +47,10 @@ public abstract class FileSystemNode
     internal void AttachTo(Directory parent)
     {
         Parent = parent;
+    }
+
+    internal void Detach()
+    {
+        Parent = null;
     }
 }

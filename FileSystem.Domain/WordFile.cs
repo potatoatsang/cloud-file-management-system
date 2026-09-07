@@ -16,4 +16,6 @@ public sealed class WordFile : File
     public int PageCount { get; }
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitWordFile(this);
+
+    public override FileSystemNode Clone() => new WordFile(Name, SizeBytes, PageCount);
 }

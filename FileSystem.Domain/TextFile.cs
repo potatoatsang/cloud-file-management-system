@@ -16,4 +16,6 @@ public sealed class TextFile : File
     public string Encoding { get; }
 
     public override void Accept(IFsVisitor visitor) => visitor.VisitTextFile(this);
+
+    public override FileSystemNode Clone() => new TextFile(Name, SizeBytes, Encoding);
 }

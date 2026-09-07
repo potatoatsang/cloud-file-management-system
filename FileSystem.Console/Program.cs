@@ -1,4 +1,5 @@
 ﻿using FileSystem.Domain;
+using FileSystem.Domain.Commands;
 using FileSystem.Domain.Sorting;
 using FileSystem.Domain.Visitors;
 using Directory = FileSystem.Domain.Directory;
@@ -62,6 +63,23 @@ public static class Program
         PrintSorted(projectDocs, new NameSortStrategy(), SortDirection.Ascending, "名稱升冪");
         PrintSorted(projectDocs, new SizeSortStrategy(), SortDirection.Descending, "大小降冪");
         PrintSorted(projectDocs, new ExtensionSortStrategy(), SortDirection.Ascending, "副檔名升冪");
+
+        WriteHeading("6) 刪除與複製貼上");
+        var editRoot = SampleTreeFactory.Create();
+        System.Console.WriteLine("--- 刪除前 ---");
+        WriteTree(editRoot);
+
+        var readme = editRoot.Children.OfType<TextFile>().Single(f => f.Name == "README.txt");
+        new DeleteNodeCommand(readme).Execute();
+        System.Console.WriteLine("--- 刪除 README.txt 後 ---");
+        WriteTree(editRoot);
+
+        var sourceProject = editRoot.Children.OfType<Directory>().Single(d => d.Name == "專案文件");
+        var targetNotes = editRoot.Children.OfType<Directory>().Single(d => d.Name == "個人筆記");
+        var spec = sourceProject.Children.OfType<WordFile>().Single(f => f.Name == "需求規格書.docx");
+        new CopyPasteNodeCommand(spec, targetNotes).Execute();
+        System.Console.WriteLine("--- 將需求規格書.docx 複製貼上至個人筆記後 ---");
+        WriteTree(editRoot);
     }
 
     private static void PrintSorted(
@@ -74,6 +92,14 @@ public static class Program
         var print = new PrintVisitor();
         directory.Accept(print);
         System.Console.WriteLine($"--- {caption} ---");
+        System.Console.Write(print.Output);
+        System.Console.WriteLine();
+    }
+
+    private static void WriteTree(Directory directory)
+    {
+        var print = new PrintVisitor();
+        directory.Accept(print);
         System.Console.Write(print.Output);
         System.Console.WriteLine();
     }
